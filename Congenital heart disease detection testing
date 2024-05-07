@@ -1,0 +1,50 @@
+import streamlit as st
+import os
+from PIL import Image, ImageDraw
+from inference_sdk import InferenceHTTPClient
+
+# Initialize the InferenceHTTPClient
+CLIENT = InferenceHTTPClient(
+    api_url="https://detect.roboflow.com", api_key="fCegF1TMd29SvqJrp97Y"
+)
+
+
+def main():
+    st.title("Object Detection App")
+    uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"])
+
+    if uploaded_file is not None:
+        # Ensure the "uploads" directory exists
+        if not os.path.exists("uploads"):
+            os.makedirs("uploads")
+
+        # Save the uploaded file locally
+        file_path = os.path.join("uploads", uploaded_file.name)
+        with open(file_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+
+        # Perform inference on the uploaded image
+        result = CLIENT.infer(file_path, model_id="jantung-anak/1")
+        st.write(result)
+
+        # Load the image
+        image = Image.open(file_path)
+
+        # Extract the detected object's information
+        predictions = result["predictions"]
+        for prediction in predictions:
+            x = prediction["x"]
+            y = prediction["y"]
+            width = prediction["width"]
+            height = prediction["height"]
+
+            # Draw a rectangle around the detected object
+            draw = ImageDraw.Draw(image)
+            draw.rectangle([x, y, x + width, y + height], outline="red", width=3)
+
+        # Display the image with the bounding box
+        st.image(image, caption="Detected Objects", use_column_width=True)
+
+
+if __name__== "__main__":
+    main()
